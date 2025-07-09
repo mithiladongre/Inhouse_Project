@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { usePaper } from '../../context/PaperContext';
+import '../../App.css';
 
 const SavedPapers = () => {
   const [savedPapers, setSavedPapers] = useState([]);
-  const [previewUrl, setPreviewUrl] = useState(null);
+  const [previewPaper, setPreviewPaper] = useState(null);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const navigate = useNavigate();
+  const { setPaperData } = usePaper();
 
   useEffect(() => {
     const papers = JSON.parse(localStorage.getItem('savedPapers') || '[]');
@@ -18,123 +22,91 @@ const SavedPapers = () => {
   };
 
   const handleView = (paper) => {
-    navigate('/Preview-paper', { state: { paper } });
+    setPaperData(paper);
+    navigate('/preview-paper');
   };
 
-  const handlePreview = async (paper) => {
-    try {
-      // Create a new window for the preview
-      const previewWindow = window.open('', '_blank');
-      
-      // Set up the preview window with proper HTML structure
-      previewWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>PDF Preview</title>
-            <style>
-              body, html {
-                margin: 0;
-                padding: 0;
-                width: 100%;
-                height: 100%;
-                overflow: hidden;
-              }
-              #loading {
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                font-family: Arial, sans-serif;
-                font-size: 16px;
-                color: #333;
-              }
-              #pdfViewer {
-                width: 100%;
-                height: 100vh;
-                display: none;
-              }
-            </style>
-          </head>
-          <body>
-            <div id="loading">Loading PDF preview...</div>
-            <embed id="pdfViewer" type="application/pdf" width="100%" height="100%">
-          </body>
-        </html>
-      `);
-      
-      // Fetch the PDF
-      const response = await fetch(`/api/papers/${paper.id}/preview`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch PDF preview');
-      }
-
-      // Get the blob from the response
-      const blob = await response.blob();
-      
-      // Create a URL for the blob
-      const url = window.URL.createObjectURL(blob);
-      
-      // Update the embed element with the PDF URL
-      const pdfViewer = previewWindow.document.getElementById('pdfViewer');
-      pdfViewer.src = url;
-      pdfViewer.style.display = 'block';
-      
-      // Hide loading message
-      const loading = previewWindow.document.getElementById('loading');
-      loading.style.display = 'none';
-      
-      // Clean up the URL when the window is closed
-      previewWindow.onbeforeunload = () => {
-        window.URL.revokeObjectURL(url);
-      };
-    } catch (error) {
-      console.error('Error previewing paper:', error);
-      alert('Failed to preview paper. Please try again.');
-    }
+  const handlePreview = (paper) => {
+    setPreviewPaper(paper);
+    setIsPreviewModalOpen(true);
   };
 
-  const handleDownload = async (paper) => {
-    try {
-      const response = await fetch(`/api/papers/${paper.id}/download`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+  const closePreviewModal = () => {
+    setIsPreviewModalOpen(false);
+    setPreviewPaper(null);
+  };
 
-      if (!response.ok) {
-        throw new Error('Failed to download paper');
-      }
+  const renderPreviewContent = () => {
+    if (!previewPaper) return null;
 
-      // Get the blob from the response
-      const blob = await response.blob();
-      
-      // Create a URL for the blob
-      const url = window.URL.createObjectURL(blob);
-      
-      // Create a temporary link element
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${paper.type}_paper_${new Date().toISOString().split('T')[0]}.pdf`;
-      
-      // Append to body, click, and remove
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      
-      // Clean up the URL
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error downloading paper:', error);
-      alert('Failed to download paper. Please try again.');
-    }
+    return (
+      <div className="preview-modal-content">
+        <div className="preview-header">
+          <h2>Paper Preview</h2>
+          <button onClick={closePreviewModal} className="close-btn">✕</button>
+        </div>
+        
+        <div className="preview-section">
+          <h3>{previewPaper.type === 'both' ? 'Mixed Paper' : `${previewPaper.type.charAt(0).toUpperCase() + previewPaper.type.slice(1)} Paper`}</h3>
+          
+          {previewPaper.type === "subjective" && (
+            <div>
+              <h4>Subjective Questions</h4>
+              {previewPaper.questions.map((q, index) => (
+                <div key={index} className="preview-question">
+                  <h4>Q{index + 1}. {q.question} {q.marks && `(${q.marks} marks)`}</h4>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {previewPaper.type === "objective" && (
+            <div>
+              <h4>Objective Questions</h4>
+              {previewPaper.questions.map((q, index) => (
+                <div key={index} className="preview-question">
+                  <h4>Q{index + 1}. {q.question}</h4>
+                  <ul className="options-list">
+                    {q.options.map((opt, i) => (
+                      <li key={i}>{`Option ${i + 1}: ${opt}`}</li>
+                    ))}
+                  </ul>
+                  <p className="correct-answer"><strong>Correct Answer:</strong> {q.correctAnswer}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {previewPaper.type === "both" && (
+            <>
+              <div>
+                <h4>Subjective Questions</h4>
+                {previewPaper.subjective.map((q, index) => (
+                  <div key={index} className="preview-question">
+                    <h4>Q{index + 1}. {q.question} {q.marks && `(${q.marks} marks)`}</h4>
+                  </div>
+                ))}
+              </div>
+              
+              <div>
+                <h4>Objective Questions</h4>
+                {previewPaper.objective.map((q, index) => (
+                  <div key={index} className="preview-question">
+                    <h4>Q{index + 1}. {q.question}</h4>
+                    <ul className="options-list">
+                      {q.options.map((opt, i) => (
+                        <li key={i}>{`Option ${i + 1}: ${opt}`}</li>
+                      ))}
+                    </ul>
+                    <p className="correct-answer"><strong>Correct Answer:</strong> {q.correctAnswer}</p>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -157,12 +129,19 @@ const SavedPapers = () => {
               </div>
               <div className="paper-actions">
                 <button onClick={() => handleView(paper)} className="view-btn">👁️ View</button>
-                <button onClick={() => handlePreview(paper)} className="preview-btn">🔍 Preview PDF</button>
-                <button onClick={() => handleDownload(paper)} className="download-btn">📥 Download</button>
+                <button onClick={() => handlePreview(paper)} className="preview-btn">🔍 Preview</button>
                 <button onClick={() => handleDelete(paper.id)} className="delete-btn">🗑️ Delete</button>
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {isPreviewModalOpen && (
+        <div className="preview-modal-overlay">
+          <div className="preview-modal">
+            {renderPreviewContent()}
+          </div>
         </div>
       )}
     </div>

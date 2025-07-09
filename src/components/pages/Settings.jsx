@@ -1,5 +1,6 @@
 import React from 'react';
 import { usePaper } from '../../context/PaperContext';
+import '../../App.css';
 
 const Settings = () => {
   const { settings, updateSettings } = usePaper();
@@ -29,6 +30,7 @@ const Settings = () => {
             />
             Auto-save papers
           </label>
+          <p className="setting-description">Automatically save papers as you create them</p>
         </div>
         <div className="setting-item">
           <label>
@@ -39,6 +41,7 @@ const Settings = () => {
             />
             Dark Mode
           </label>
+          <p className="setting-description">Switch between light and dark theme</p>
         </div>
         <div className="setting-item">
           <label>
@@ -49,6 +52,7 @@ const Settings = () => {
             />
             Show marks in preview
           </label>
+          <p className="setting-description">Display marks for each question in the preview</p>
         </div>
       </div>
 
@@ -66,14 +70,18 @@ const Settings = () => {
               <option value="both">Both</option>
             </select>
           </label>
+          <p className="setting-description">Choose the default paper type when creating a new paper</p>
         </div>
       </div>
 
       <div className="settings-section">
         <h3>Data Management</h3>
-        <button onClick={handleClearData} className="clear-data-btn">
-          Clear All Saved Papers
-        </button>
+        <div className="setting-item">
+          <button onClick={handleClearData} className="clear-data-btn">
+            Clear All Saved Papers
+          </button>
+          <p className="setting-description">Remove all saved papers from your local storage</p>
+        </div>
       </div>
     </div>
   );

@@ -13,6 +13,15 @@ export const PaperProvider = ({ children }) => {
 
   // Apply dark mode on mount and when it changes
   useEffect(() => {
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    if (savedDarkMode) {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
+  }, []);
+
+  useEffect(() => {
     if (settings.darkMode) {
       document.body.classList.add('dark-mode');
     } else {

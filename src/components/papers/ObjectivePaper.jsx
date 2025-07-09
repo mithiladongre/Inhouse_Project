@@ -1,10 +1,14 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { usePaper } from "../../context/PaperContext";
 import "../../App.css"; // Ensure styles are imported
 
-const ObjectivePaperForm = () => {
+const ObjectivePaper = () => {
   const [questions, setQuestions] = useState([
     { question: "", options: ["", "", "", ""], correctAnswer: "" }
   ]);
+  const navigate = useNavigate();
+  const { setPaperData } = usePaper();
 
   // Handle change in input fields
   const handleChange = (index, field, value) => {
@@ -38,7 +42,7 @@ const ObjectivePaperForm = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     setPaperData({ type: "objective", questions });
-    navigate("/Preview-paper");
+    navigate("/preview-paper");
   };
 
   return (
@@ -51,7 +55,6 @@ const ObjectivePaperForm = () => {
               type="text"
               value={q.question}
               onChange={(e) => handleChange(qIndex, "question", e.target.value)}
-              placeholder="Enter your question"
               required
             />
             <label>Options:</label>
@@ -66,16 +69,12 @@ const ObjectivePaperForm = () => {
               />
             ))}
             <label>Correct Answer:</label>
-            <select
+            <input
+              type="text"
               value={q.correctAnswer}
               onChange={(e) => handleChange(qIndex, "correctAnswer", e.target.value)}
               required
-            >
-              <option value="">Select Correct Option</option>
-              {q.options.map((option, oIndex) => (
-                <option key={oIndex} value={option}>{`Option ${oIndex + 1}`}</option>
-              ))}
-            </select>
+            />
             <button type="button" onClick={() => removeQuestion(qIndex)} className="remove-btn">❌</button>
           </div>
         ))}
@@ -86,4 +85,4 @@ const ObjectivePaperForm = () => {
   );
 };
 
-export default ObjectivePaperForm;
+export default ObjectivePaper;

@@ -16,7 +16,7 @@ function App() {
         <Navbar />
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/Preview-paper" element={<PreviewPaper />} />
+          <Route path="/preview-paper" element={<PreviewPaper />} />
           <Route path="/saved-papers" element={<SavedPapers />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/create-paper" element={<CreatePaper />} />

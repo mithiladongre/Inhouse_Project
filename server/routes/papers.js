@@ -152,74 +152,6 @@ router.delete('/:id', verifyToken, async (req, res) => {
   }
 });
 
-// Download paper as PDF
-router.get('/:id/download', async (req, res) => {
-  let pdfPath = null;
-  
-  try {
-    const paperId = req.params.id;
-    
-    // Get paper data
-    let paperData = {
-      type: 'subjective',
-      questions: [
-        {
-          question: "Draw and explain GSM architecture and explain function of each block.",
-          marks: 5
-        },
-        {
-          question: "What is handoff? What are different types of handoff? Explain any one.",
-          marks: 5
-        },
-        {
-          question: "Write a brief note on Cell geometry in mobile communication.",
-          marks: 5
-        }
-      ]
-    };
-
-    // Generate PDF
-    pdfPath = await generateQuestionPaper(paperData);
-
-    // Check if file exists
-    if (!fs.existsSync(pdfPath)) {
-      throw new Error('PDF file not found after generation');
-    }
-
-    // Set headers
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=question_paper.pdf`);
-
-    // Send file
-    const stream = fs.createReadStream(pdfPath);
-    stream.pipe(res);
-
-    // Clean up after sending
-    stream.on('end', () => {
-      fs.unlink(pdfPath, (err) => {
-        if (err) console.error('Error deleting temp file:', err);
-      });
-    });
-
-  } catch (error) {
-    console.error('Error in download route:', error);
-    
-    // Clean up if file exists
-    if (pdfPath && fs.existsSync(pdfPath)) {
-      try {
-        fs.unlinkSync(pdfPath);
-      } catch (err) {
-        console.error('Error cleaning up:', err);
-      }
-    }
-
-    res.status(500).json({ 
-      message: 'Failed to generate PDF',
-      error: error.message 
-    });
-  }
-});
-
 // Preview paper as PDF
 router.get('/:id/preview', async (req, res) => {
   let pdfPath = null;
@@ -227,27 +159,14 @@ router.get('/:id/preview', async (req, res) => {
   try {
     const paperId = req.params.id;
     
-    // Get paper data (using sample data for now)
-    let paperData = {
-      type: 'subjective',
-      questions: [
-        {
-          question: "Draw and explain GSM architecture and explain function of each block.",
-          marks: 5
-        },
-        {
-          question: "What is handoff? What are different types of handoff? Explain any one.",
-          marks: 5
-        },
-        {
-          question: "Write a brief note on Cell geometry in mobile communication.",
-          marks: 5
-        }
-      ]
-    };
+    // Get paper data from database
+    const [paper] = await pool.query('SELECT * FROM papers WHERE id = ?', [paperId]);
+    if (!paper) {
+      return res.status(404).json({ message: 'Paper not found' });
+    }
 
     // Generate PDF
-    pdfPath = await generateQuestionPaper(paperData);
+    pdfPath = await generateQuestionPaper(paper);
 
     // Check if file exists
     if (!fs.existsSync(pdfPath)) {
